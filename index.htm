@@ -1,32 +1,33 @@
+```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <title>Word Search Game</title>
   <style>
-    body { font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 0; }
-    h1 { text-align: center; margin-top: 20px; }
-    #main-container { display: flex; justify-content: center; align-items: center; gap: 40px; margin-top: 30px; }
-    #controls { display: flex; flex-direction: column; align-items: center; gap: 20px; }
-    .team-button { padding: 15px 25px; font-size: 18px; cursor: pointer; border: 1px solid #aaa; border-radius: 5px; width: 120px; color: white; }
-    .team-button.team-a { background-color: red; }
-    .team-button.team-b { background-color: blue; }
-    .score { font-size: 20px; color: #333; }
-    #grid { display: grid; grid-template-columns: repeat(10, 40px); gap: 2px; justify-content: center; }
-    .cell { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background-color: #fff; border: 1px solid #ccc; cursor: pointer; user-select: none; font-size: 18px; }
-    .found { background-color: rgba(135, 206, 235, 0.6); }
-    .hint { background-color: rgba(255, 255, 0, 0.4); }
-    .team-a { background-color: rgba(255, 0, 0, 0.3) !important; }
-    .team-b { background-color: rgba(0, 0, 255, 0.3) !important; }
-    #wordBox { display: flex; justify-content: center; gap: 20px; margin-top: 20px; }
-    #wordList { max-width: 300px; text-align: left; }
-    #hintButton { height: 100%; padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #eee; border: 1px solid #aaa; border-radius: 5px; }
-    #pagination { margin: 30px auto; text-align: center; }
-    #pagination button { padding: 8px 15px; margin: 0 10px; font-size: 14px; }
+    body{font-family:Arial,sans-serif;background:#f9f9f9;margin:0}
+    h1{text-align:center;margin-top:20px}
+    #main-container{display:flex;justify-content:center;align-items:center;gap:40px;margin-top:30px}
+    #controls{display:flex;flex-direction:column;align-items:center;gap:20px}
+    .team-button{padding:15px 25px;font-size:18px;cursor:pointer;border:1px solid #aaa;border-radius:5px;width:120px;color:#fff}
+    .team-button.team-a{background:red}
+    .team-button.team-b{background:blue}
+    .score{font-size:20px;color:#333}
+    #grid{display:grid;grid-template-columns:repeat(10,40px);gap:2px;justify-content:center}
+    .cell{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #ccc;cursor:pointer;user-select:none;font-size:18px}
+    .found{background:rgba(135,206,235,.6)}
+    .hint{background:rgba(255,255,0,.4)}
+    .team-a{background:rgba(255,0,0,.3)!important}
+    .team-b{background:rgba(0,0,255,.3)!important}
+    #wordBox{display:flex;justify-content:center;gap:20px;margin-top:20px}
+    #wordList{max-width:300px;text-align:left}
+    #hintButton{height:100%;padding:10px 20px;font-size:16px;cursor:pointer;background:#eee;border:1px solid #aaa;border-radius:5px}
+    #pagination{margin:30px auto;text-align:center}
+    #pagination button{padding:8px 15px;margin:0 10px;font-size:14px}
+    #reloadButton{margin-top:15px;padding:10px 20px;font-size:16px;cursor:pointer;display:none}
   </style>
 </head>
 <body>
-
 <h1>Word Search Game</h1>
 <div id="main-container">
   <div id="controls">
@@ -40,9 +41,11 @@
       <button id="hintButton">Hint</button>
     </div>
     <div id="pagination">
-      <button onclick="goToPreviousPage()">Previous</button>
+      <button onclick="prevPage()">Previous</button>
       <span id="pageLabel">Page 1</span>
-      <button onclick="goToNextPage()">Next</button>
+      <button onclick="nextPage()">Next</button>
+      <br>
+      <button id="reloadButton" onclick="reloadGame()">Reload Game</button>
     </div>
   </div>
   <div id="controls">
@@ -50,201 +53,240 @@
     <div class="score">Score: <span id="scoreB">0</span></div>
   </div>
 </div>
-
 <script>
-const gridSize = 10;
-let currentTeam = null;
-let scoreA = 0;
-let scoreB = 0;
-let foundWords = new Set();
-let currentSelection = [];
-let currentWord = "";
-let lastIndex = -1;
-let direction = null;
-let page = 0;
-
-const gridDiv = document.getElementById("grid");
-const wordListDiv = document.getElementById("wordList");
-
-const allowed = [1, gridSize, gridSize + 1, -gridSize + 1];
-
-const pageData = [
-  {
-    grid: [
-      'K','B','F','J','D','M','R','J','V','C',
-      'D','O','G','Z','C','I','M','U','T','Q',
-      'C','W','Y','F','A','L','C','D','L','I',
-      'A','X','K','A','T','K','E','S','Q','A',
-      'K','A','N','F','Z','T','J','O','T','P',
-      'E','L','J','H','X','K','B','K','P','P',
-      'V','F','S','X','N','H','C','V','D','L',
-      'Z','I','I','T','D','L','M','P','C','E',
-      'F','B','A','N','A','N','A','F','A','X',
-      'P','I','G','X','Q','B','U','Y','T','Y'
-    ],
-    words: ['cat', 'dog', 'fish', 'apple', 'banana', 'rice', 'milk', 'pig', 'cake', 'duck']
-  },
-  {
-    grid: [...Array(100)].map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))),
-    words: ['tiger', 'zebra', 'panda', 'monkey', 'lion', 'bear', 'wolf', 'horse', 'camel', 'rhino']
-  },
-  {
-    grid: [...Array(100)].map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))),
-    words: ['pizza', 'burger', 'sushi', 'pasta', 'noodle', 'steak', 'fries', 'salad', 'bread', 'cheese']
-  },
-  {
-    grid: [...Array(100)].map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))),
-    words: ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'white', 'black', 'pink', 'brown']
-  },
-  {
-    grid: [...Array(100)].map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))),
-    words: ['grape', 'pen', 'cloud', 'car', 'juice', 'dog', 'chair', 'bag', 'milk', 'cat']
-  },
-  {
-    grid: [...Array(100)].map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))),
-    words: ['apple', 'sun', 'ball', 'book', 'rice', 'bird', 'ice', 'fan', 'egg', 'toy']
-  }
+const gridSize=10;
+let currentTeam=null,scoreA=0,scoreB=0,page=0,currentSelection=[],currentWord="",lastIndex=-1,direction=null,foundWords=new Set(),tempGrid;
+const NO_MASK=["camel","rhino","chair","fries"],OPTIONAL_MISSING=[...NO_MASK];
+const directions=[{dx:1,dy:0,delta:1},{dx:0,dy:1,delta:gridSize},{dx:1,dy:1,delta:gridSize+1},{dx:1,dy:-1,delta:-gridSize+1}];
+const allowed=directions.map(d=>d.delta);
+const gridDiv=document.getElementById("grid"),wordListDiv=document.getElementById("wordList");
+const pageData=[
+  {grid:['K','B','F','J','D','M','R','I','C','E','D','O','G','Z','C','I','I','U','T','Q','C','W','Y','F','A','L','C','C','L','I','A','X','K','A','T','K','E','S','Q','A','K','A','N','F','Z','T','J','O','T','P','E','L','J','H','X','K','B','K','P','P','V','F','S','X','N','H','C','V','D','L','Z','I','I','T','D','L','M','P','U','E','F','B','A','N','A','N','A','F','C','X','P','I','G','X','Q','B','U','Y','K','Y'],
+   words:['cat','dog','fish','apple','banana','rice','milk','pig','cake','duck']},
+  {words:['tiger','zebra','panda','monkey','lion','bear','wolf','horse','camel','rhino']},
+  {words:['pizza','burger','sushi','pasta','noodle','steak','fries','salad','bread','cheese']},
+  {words:['red','blue','green','yellow','purple','orange','white','black','pink','brown']},
+  {words:['grape','pen','cloud','car','juice','dog','chair','bag','milk','cat']},
+  {words:['apple','sun','ball','book','rice','bird','ice','fan','egg','toy']}
 ];
 
-function selectTeam(team) {
-  currentTeam = team;
-  resetSelection();
+function updateScores(){
+  document.getElementById("scoreA").textContent=(Math.round(scoreA*10)/10);
+  document.getElementById("scoreB").textContent=(Math.round(scoreB*10)/10);
 }
 
-function flashColor(color) {
-  const original = document.body.style.backgroundColor;
-  document.body.style.backgroundColor = color;
-  setTimeout(() => { document.body.style.backgroundColor = original; }, 300);
+function randomLetter(){return String.fromCharCode(65+Math.floor(Math.random()*26))}
+
+function canPlace(word,r,c,dir){
+  const len=word.length,endR=r+dir.dy*(len-1),endC=c+dir.dx*(len-1);
+  if(endR<0||endR>=gridSize||endC<0||endC>=gridSize) return false;
+  for(let i=0;i<len;i++){
+    const rr=r+dir.dy*i,cc=c+dir.dx*i,idx=rr*gridSize+cc;
+    if(tempGrid[idx]&&tempGrid[idx]!==word[i]) return false;
+  }
+  return true;
 }
 
-function resetSelection() {
-  currentSelection.forEach(cell => cell.classList.remove("team-a", "team-b"));
-  currentSelection = [];
-  currentWord = "";
-  lastIndex = -1;
-  direction = null;
+function placeWord(word){
+  for(let t=0;t<200;t++){
+    const dir=directions[Math.floor(Math.random()*directions.length)],
+          r=Math.floor(Math.random()*gridSize),
+          c=Math.floor(Math.random()*gridSize);
+    if(!canPlace(word,r,c,dir)) continue;
+    for(let i=0;i<word.length;i++){
+      const rr=r+dir.dy*i,cc=c+dir.dx*i;
+      tempGrid[rr*gridSize+cc]=word[i];
+    }
+    return true;
+  }
+  return false;
 }
 
-function loadPage() {
-  const data = pageData[page];
-  gridDiv.innerHTML = "";
-  data.grid.forEach(letter => {
-    const cell = document.createElement("div");
-    cell.className = "cell";
-    cell.textContent = letter;
+function generateGrid(words){
+  tempGrid=new Array(gridSize*gridSize).fill(null);
+  words.forEach(w=>placeWord(w.toUpperCase()));
+  return tempGrid.map(ch=>ch||randomLetter());
+}
+
+function maskedDisplay(w){
+  if(NO_MASK.includes(w)||w.length<2) return w;
+  const pos=Math.floor(Math.random()*w.length);
+  return w.slice(0,pos)+"_"+w.slice(pos+1);
+}
+
+function selectTeam(t){currentTeam=t;resetSelection()}
+function flashColor(col){
+  const o=document.body.style.backgroundColor;
+  document.body.style.backgroundColor=col;
+  setTimeout(()=>document.body.style.backgroundColor=o,300);
+}
+
+function resetSelection(){
+  currentSelection.forEach(c=>c.classList.remove("team-a","team-b"));
+  currentSelection=[];
+  currentWord="";
+  lastIndex=-1;
+  direction=null;
+}
+
+function penalize(){
+  if(currentTeam==='A'){scoreA-=0.5}
+  else if(currentTeam==='B'){scoreB-=0.5}
+  updateScores();
+}
+
+function wordExists(word,arr){
+  const target=word.toUpperCase();
+  for(let i=0;i<arr.length;i++){
+    for(const d of allowed){
+      let ok=true;
+      for(let j=0;j<target.length;j++){
+        const idx=i+j*d;
+        if(idx<0||idx>=arr.length){ok=false;break}
+        if(d===1&&Math.floor(idx/gridSize)!==Math.floor(i/gridSize)){ok=false;break}
+        const ch=arr[idx].textContent?arr[idx].textContent:arr[idx];
+        if(ch!==target[j]){ok=false;break}
+      }
+      if(ok) return true;
+    }
+  }
+  return false;
+}
+
+function highlightWord(word,grid){
+  const target=word.toUpperCase();
+  for(let i=0;i<grid.length;i++){
+    for(const d of allowed){
+      const pos=[];let built="";
+      for(let j=0;j<target.length;j++){
+        const idx=i+j*d;
+        if(idx<0||idx>=grid.length) break;
+        if(d===1&&Math.floor(idx/gridSize)!==Math.floor(i/gridSize)) break;
+        const cell=grid[idx];
+        built+=cell.textContent;
+        pos.push(cell);
+      }
+      if(built===target){
+        pos.forEach(c=>c.classList.add("found"));
+        return;
+      }
+    }
+  }
+}
+
+function showHint(){
+  const data=pageData[page],cells=[...gridDiv.children];
+  const candidates=data.words.filter(w=>!foundWords.has(w)&&wordExists(w,cells));
+  if(!candidates.length) return alert("No more hints");
+  const word=candidates[Math.floor(Math.random()*candidates.length)].toUpperCase();
+  for(let i=0;i<cells.length;i++){
+    for(const d of allowed){
+      const pos=[];let built="";
+      for(let j=0;j<word.length;j++){
+        const idx=i+j*d;
+        if(idx<0||idx>=cells.length) break;
+        if(d===1&&Math.floor(idx/gridSize)!==Math.floor(i/gridSize)) break;
+        const cell=cells[idx];
+        built+=cell.textContent;
+        pos.push(cell);
+      }
+      if(built===word){
+        pos.forEach(c=>c.classList.add("hint"));
+        setTimeout(()=>pos.forEach(c=>c.classList.remove("hint")),1000);
+        return;
+      }
+    }
+  }
+}
+
+function loadPage(){
+  const data=pageData[page];
+  if(!data.grid) data.grid=generateGrid(data.words);
+  if(!data.foundWords) data.foundWords=new Set;
+  foundWords=data.foundWords;
+  OPTIONAL_MISSING.forEach(w=>{
+    if(data.words.includes(w)&&!wordExists(w,data.grid)&&!foundWords.has(w)) foundWords.add(w);
+  });
+  gridDiv.innerHTML="";
+  data.grid.forEach(l=>{
+    const cell=document.createElement("div");
+    cell.className="cell";
+    cell.textContent=l;
     gridDiv.appendChild(cell);
   });
-
-  document.getElementById("pageLabel").innerText = `Page ${page + 1}`;
-  wordListDiv.innerHTML = `<h3>Find These Words:</h3><ol>${data.words.map(w => {
-    const display = w.length <= 2 ? w : w[0] + '_' + w.slice(2);
-    return `<li data-word="${w}">${display}</li>`;
-  }).join('')}</ol>`;
-
-  const grid = Array.from(gridDiv.children);
-  grid.forEach(cell => cell.addEventListener("click", e => handleClick(e, grid, data.words)));
-
-  scoreA = 0;
-  scoreB = 0;
-  document.getElementById("scoreA").textContent = scoreA;
-  document.getElementById("scoreB").textContent = scoreB;
-  currentTeam = null;
-  foundWords = new Set();
+  document.getElementById("pageLabel").textContent=`Page ${page+1}`;
+  wordListDiv.innerHTML=`<h3>Find These Words:</h3><ol>`+
+    data.words.map(w=>foundWords.has(w)?
+      `<li data-word="${w}"><del>${maskedDisplay(w)}</del></li>`:
+      `<li data-word="${w}">${maskedDisplay(w)}</li>`).join("")+
+    `</ol>`;
+  const cells=[...gridDiv.children];
+  cells.forEach(c=>c.addEventListener("click",e=>handleClick(e,cells,data.words)));
+  foundWords.forEach(w=>highlightWord(w,cells));
+  updateScores();
+  document.getElementById("reloadButton").style.display=page===pageData.length-1?"inline-block":"none";
+  resetSelection();
+  currentTeam=null;
 }
 
-function handleClick(e, grid, words) {
-  if (!currentTeam) return alert("Select Team A or B first!");
-  const cell = e.target;
-  const index = grid.indexOf(cell);
-  if (!cell.textContent.match(/[A-Z]/)) return;
-  if (lastIndex === -1) {
+function handleClick(e,cells,words){
+  if(!currentTeam) return alert("Select Team first");
+  const cell=e.target,idx=cells.indexOf(cell);
+  if(!cell.textContent.match(/[A-Z]/)) return;
+  if(lastIndex===-1){
     currentSelection.push(cell);
-    currentWord += cell.textContent.toLowerCase();
-    cell.classList.add(currentTeam === 'A' ? "team-a" : "team-b");
-    lastIndex = index;
+    currentWord+=cell.textContent.toLowerCase();
+    cell.classList.add(currentTeam==='A'?"team-a":"team-b");
+    lastIndex=idx;
     return;
   }
-  const diff = index - lastIndex;
-  if (direction === null && allowed.includes(diff)) direction = diff;
-  if (index !== lastIndex + direction) {
-    flashColor("#ffdddd"); resetSelection(); currentTeam = null; return;
+  const diff=idx-lastIndex;
+  if(direction===null&&allowed.includes(diff)) direction=diff;
+  if(idx!==lastIndex+direction){
+    flashColor("#ffdddd");
+    penalize();
+    resetSelection();
+    currentTeam=null;
+    return;
   }
   currentSelection.push(cell);
-  currentWord += cell.textContent.toLowerCase();
-  cell.classList.add(currentTeam === 'A' ? "team-a" : "team-b");
-  lastIndex = index;
-  if (!words.some(w => w.startsWith(currentWord))) {
-    flashColor("#ffdddd"); resetSelection(); currentTeam = null; return;
-  }
-  if (words.includes(currentWord)) {
-    flashColor("#ddffdd");
-    currentSelection.forEach(c => { c.classList.remove("team-a", "team-b"); c.classList.add("found"); });
-    foundWords.add(currentWord);
-
-    const wordItems = wordListDiv.querySelectorAll("li");
-    wordItems.forEach(item => {
-      if (item.dataset.word === currentWord) {
-        item.innerHTML = `<del>${item.textContent}</del>`;
-      }
-    });
-
-    if (currentTeam === 'A') scoreA++;
-    else scoreB++;
-    document.getElementById("scoreA").textContent = scoreA;
-    document.getElementById("scoreB").textContent = scoreB;
+  currentWord+=cell.textContent.toLowerCase();
+  cell.classList.add(currentTeam==='A'?"team-a":"team-b");
+  lastIndex=idx;
+  if(!words.some(w=>w.startsWith(currentWord))){
+    flashColor("#ffdddd");
+    penalize();
     resetSelection();
-    currentTeam = null;
+    currentTeam=null;
+    return;
+  }
+  if(words.includes(currentWord)&&!foundWords.has(currentWord)){
+    flashColor("#ddffdd");
+    currentSelection.forEach(c=>c.classList.remove("team-a","team-b"));
+    currentSelection.forEach(c=>c.classList.add("found"));
+    foundWords.add(currentWord);
+    [...wordListDiv.querySelectorAll("li")].forEach(li=>{
+      if(li.dataset.word===currentWord) li.innerHTML=`<del>${li.textContent}</del>`;
+    });
+    if(currentTeam==='A') scoreA+=1; else scoreB+=1;
+    updateScores();
+    resetSelection();
+    currentTeam=null;
   }
 }
 
-function showHint() {
-  const data = pageData[page];
-  const grid = Array.from(gridDiv.children);
-  const unfound = data.words.filter(w => !foundWords.has(w));
-  if (!unfound.length) return alert("All words found!");
-
-  let shown = false;
-
-  for (let hintWordRaw of unfound) {
-    const hintWord = hintWordRaw.toUpperCase();
-    for (let i = 0; i < grid.length; i++) {
-      for (let dir of allowed) {
-        let positions = [];
-        let word = '';
-        for (let j = 0; j < hintWord.length; j++) {
-          const idx = i + j * dir;
-          if (idx < 0 || idx >= grid.length) break;
-          const rowDiff = Math.abs(Math.floor(idx / gridSize) - Math.floor((idx - dir) / gridSize));
-          if (dir === 1 && rowDiff > 0) break;
-          const cell = grid[idx];
-          word += cell.textContent;
-          positions.push(cell);
-        }
-        if (word === hintWord) {
-          positions.forEach(c => c.classList.add("hint"));
-          setTimeout(() => positions.forEach(c => c.classList.remove("hint")), 1000);
-          shown = true;
-          break;
-        }
-      }
-      if (shown) break;
-    }
-    if (shown) break;
-  }
-}
-
-function goToNextPage() {
-  page = (page + 1) % pageData.length;
-  loadPage();
-}
-function goToPreviousPage() {
-  page = (page - 1 + pageData.length) % pageData.length;
+function nextPage(){page=(page+1)%pageData.length;loadPage()}
+function prevPage(){page=(page-1+pageData.length)%pageData.length;loadPage()}
+function reloadGame(){
+  scoreA=0;scoreB=0;
+  pageData.forEach(p=>p.foundWords=new Set);
+  page=0;
   loadPage();
 }
 
-document.getElementById("hintButton").addEventListener("click", showHint);
+document.getElementById("hintButton").addEventListener("click",showHint);
 loadPage();
 </script>
-
 </body>
 </html>
+```
