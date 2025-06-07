@@ -2,55 +2,249 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Word Click Game</title>
+  <title>Word Search Game</title>
   <style>
-    body {
-      font-family: Arial, sans-serif;
-      text-align: center;
-      padding: 40px;
-      background-color: #f0f8ff;
-    }
-    .word-button {
-      display: inline-block;
-      margin: 10px;
-      padding: 15px 25px;
-      font-size: 20px;
-      border: none;
-      border-radius: 10px;
-      background-color: #add8e6;
-      cursor: pointer;
-      transition: background-color 0.3s;
-    }
-    .word-button:hover {
-      background-color: #87ceeb;
-    }
-    #output {
-      margin-top: 30px;
-      font-size: 24px;
-      color: #2e8b57;
-    }
+    body { font-family: Arial, sans-serif; background-color: #f9f9f9; margin: 0; }
+    h1 { text-align: center; margin-top: 20px; }
+    #main-container { display: flex; justify-content: center; align-items: center; gap: 40px; margin-top: 30px; }
+    #controls { display: flex; flex-direction: column; align-items: center; gap: 20px; }
+    .team-button { padding: 15px 25px; font-size: 18px; cursor: pointer; border: 1px solid #aaa; border-radius: 5px; width: 120px; color: white; }
+    .team-button.team-a { background-color: red; }
+    .team-button.team-b { background-color: blue; }
+    .score { font-size: 20px; color: #333; }
+    #grid { display: grid; grid-template-columns: repeat(10, 40px); gap: 2px; justify-content: center; }
+    .cell { width: 40px; height: 40px; display: flex; align-items: center; justify-content: center; background-color: #fff; border: 1px solid #ccc; cursor: pointer; user-select: none; font-size: 18px; }
+    .found { background-color: rgba(135, 206, 235, 0.6); }
+    .hint { background-color: rgba(255, 255, 0, 0.4); }
+    .team-a { background-color: rgba(255, 0, 0, 0.3) !important; }
+    .team-b { background-color: rgba(0, 0, 255, 0.3) !important; }
+    #wordBox { display: flex; justify-content: center; gap: 20px; margin-top: 20px; }
+    #wordList { max-width: 300px; text-align: left; }
+    #hintButton { height: 100%; padding: 10px 20px; font-size: 16px; cursor: pointer; background-color: #eee; border: 1px solid #aaa; border-radius: 5px; }
+    #pagination { margin: 30px auto; text-align: center; }
+    #pagination button { padding: 8px 15px; margin: 0 10px; font-size: 14px; }
   </style>
 </head>
 <body>
 
-  <h1>Click a Word!</h1>
-
-  <div id="word-buttons">
-    <button class="word-button" onclick="showWord('cat')">cat</button>
-    <button class="word-button" onclick="showWord('dog')">dog</button>
-    <button class="word-button" onclick="showWord('fish')">fish</button>
-    <button class="word-button" onclick="showWord('apple')">apple</button>
-    <button class="word-button" onclick="showWord('banana')">banana</button>
-    <button class="word-button" onclick="showWord('rice')">rice</button>
-    <button class="word-button" onclick="showWord('milk')">milk</button>
-    <button class="word-button" onclick="showWord('pig')">pig</button>
-    <button class="word-button" onclick="showWord('cake')">cake</button>
-    <button class="word-button" onclick="showWord('duck')">duck</button>
+<h1>Word Search Game</h1>
+<div id="main-container">
+  <div id="controls">
+    <button class="team-button team-a" onclick="selectTeam('A')">Team A</button>
+    <div class="score">Score: <span id="scoreA">0</span></div>
   </div>
+  <div>
+    <div id="grid"></div>
+    <div id="wordBox">
+      <div id="wordList"></div>
+      <button id="hintButton">Hint</button>
+    </div>
+    <div id="pagination">
+      <button onclick="goToPreviousPage()">Previous</button>
+      <span id="pageLabel">Page 1</span>
+      <button onclick="goToNextPage()">Next</button>
+    </div>
+  </div>
+  <div id="controls">
+    <button class="team-button team-b" onclick="selectTeam('B')">Team B</button>
+    <div class="score">Score: <span id="scoreB">0</span></div>
+  </div>
+</div>
 
-  <div id="output"></div>
+<script>
+const gridSize = 10;
+let currentTeam = null;
+let scoreA = 0;
+let scoreB = 0;
+let foundWords = new Set();
+let currentSelection = [];
+let currentWord = "";
+let lastIndex = -1;
+let direction = null;
+let page = 0;
 
-  <script>
-    function showWord(word) {
-      document.getElementById('output').textContent = `You clicked: ${word}`;
-      co
+const gridDiv = document.getElementById("grid");
+const wordListDiv = document.getElementById("wordList");
+
+const allowed = [1, gridSize, gridSize + 1, -gridSize + 1];
+
+const pageData = [
+  {
+    grid: [
+      'K','B','F','J','D','M','R','J','V','C',
+      'D','O','G','Z','C','I','M','U','T','Q',
+      'C','W','Y','F','A','L','C','D','L','I',
+      'A','X','K','A','T','K','E','S','Q','A',
+      'K','A','N','F','Z','T','J','O','T','P',
+      'E','L','J','H','X','K','B','K','P','P',
+      'V','F','S','X','N','H','C','V','D','L',
+      'Z','I','I','T','D','L','M','P','C','E',
+      'F','B','A','N','A','N','A','F','A','X',
+      'P','I','G','X','Q','B','U','Y','T','Y'
+    ],
+    words: ['cat', 'dog', 'fish', 'apple', 'banana', 'rice', 'milk', 'pig', 'cake', 'duck']
+  },
+  {
+    grid: [...Array(100)].map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))),
+    words: ['tiger', 'zebra', 'panda', 'monkey', 'lion', 'bear', 'wolf', 'horse', 'camel', 'rhino']
+  },
+  {
+    grid: [...Array(100)].map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))),
+    words: ['pizza', 'burger', 'sushi', 'pasta', 'noodle', 'steak', 'fries', 'salad', 'bread', 'cheese']
+  },
+  {
+    grid: [...Array(100)].map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))),
+    words: ['red', 'blue', 'green', 'yellow', 'purple', 'orange', 'white', 'black', 'pink', 'brown']
+  },
+  {
+    grid: [...Array(100)].map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))),
+    words: ['grape', 'pen', 'cloud', 'car', 'juice', 'dog', 'chair', 'bag', 'milk', 'cat']
+  },
+  {
+    grid: [...Array(100)].map(() => String.fromCharCode(65 + Math.floor(Math.random() * 26))),
+    words: ['apple', 'sun', 'ball', 'book', 'rice', 'bird', 'ice', 'fan', 'egg', 'toy']
+  }
+];
+
+function selectTeam(team) {
+  currentTeam = team;
+  resetSelection();
+}
+
+function flashColor(color) {
+  const original = document.body.style.backgroundColor;
+  document.body.style.backgroundColor = color;
+  setTimeout(() => { document.body.style.backgroundColor = original; }, 300);
+}
+
+function resetSelection() {
+  currentSelection.forEach(cell => cell.classList.remove("team-a", "team-b"));
+  currentSelection = [];
+  currentWord = "";
+  lastIndex = -1;
+  direction = null;
+}
+
+function loadPage() {
+  const data = pageData[page];
+  gridDiv.innerHTML = "";
+  data.grid.forEach(letter => {
+    const cell = document.createElement("div");
+    cell.className = "cell";
+    cell.textContent = letter;
+    gridDiv.appendChild(cell);
+  });
+
+  document.getElementById("pageLabel").innerText = `Page ${page + 1}`;
+  wordListDiv.innerHTML = `<h3>Find These Words:</h3><ol>${data.words.map(w => {
+    const display = w.length <= 2 ? w : w[0] + '_' + w.slice(2);
+    return `<li data-word="${w}">${display}</li>`;
+  }).join('')}</ol>`;
+
+  const grid = Array.from(gridDiv.children);
+  grid.forEach(cell => cell.addEventListener("click", e => handleClick(e, grid, data.words)));
+
+  scoreA = 0;
+  scoreB = 0;
+  document.getElementById("scoreA").textContent = scoreA;
+  document.getElementById("scoreB").textContent = scoreB;
+  currentTeam = null;
+  foundWords = new Set();
+}
+
+function handleClick(e, grid, words) {
+  if (!currentTeam) return alert("Select Team A or B first!");
+  const cell = e.target;
+  const index = grid.indexOf(cell);
+  if (!cell.textContent.match(/[A-Z]/)) return;
+  if (lastIndex === -1) {
+    currentSelection.push(cell);
+    currentWord += cell.textContent.toLowerCase();
+    cell.classList.add(currentTeam === 'A' ? "team-a" : "team-b");
+    lastIndex = index;
+    return;
+  }
+  const diff = index - lastIndex;
+  if (direction === null && allowed.includes(diff)) direction = diff;
+  if (index !== lastIndex + direction) {
+    flashColor("#ffdddd"); resetSelection(); currentTeam = null; return;
+  }
+  currentSelection.push(cell);
+  currentWord += cell.textContent.toLowerCase();
+  cell.classList.add(currentTeam === 'A' ? "team-a" : "team-b");
+  lastIndex = index;
+  if (!words.some(w => w.startsWith(currentWord))) {
+    flashColor("#ffdddd"); resetSelection(); currentTeam = null; return;
+  }
+  if (words.includes(currentWord)) {
+    flashColor("#ddffdd");
+    currentSelection.forEach(c => { c.classList.remove("team-a", "team-b"); c.classList.add("found"); });
+    foundWords.add(currentWord);
+
+    const wordItems = wordListDiv.querySelectorAll("li");
+    wordItems.forEach(item => {
+      if (item.dataset.word === currentWord) {
+        item.innerHTML = `<del>${item.textContent}</del>`;
+      }
+    });
+
+    if (currentTeam === 'A') scoreA++;
+    else scoreB++;
+    document.getElementById("scoreA").textContent = scoreA;
+    document.getElementById("scoreB").textContent = scoreB;
+    resetSelection();
+    currentTeam = null;
+  }
+}
+
+function showHint() {
+  const data = pageData[page];
+  const grid = Array.from(gridDiv.children);
+  const unfound = data.words.filter(w => !foundWords.has(w));
+  if (!unfound.length) return alert("All words found!");
+
+  let shown = false;
+
+  for (let hintWordRaw of unfound) {
+    const hintWord = hintWordRaw.toUpperCase();
+    for (let i = 0; i < grid.length; i++) {
+      for (let dir of allowed) {
+        let positions = [];
+        let word = '';
+        for (let j = 0; j < hintWord.length; j++) {
+          const idx = i + j * dir;
+          if (idx < 0 || idx >= grid.length) break;
+          const rowDiff = Math.abs(Math.floor(idx / gridSize) - Math.floor((idx - dir) / gridSize));
+          if (dir === 1 && rowDiff > 0) break;
+          const cell = grid[idx];
+          word += cell.textContent;
+          positions.push(cell);
+        }
+        if (word === hintWord) {
+          positions.forEach(c => c.classList.add("hint"));
+          setTimeout(() => positions.forEach(c => c.classList.remove("hint")), 1000);
+          shown = true;
+          break;
+        }
+      }
+      if (shown) break;
+    }
+    if (shown) break;
+  }
+}
+
+function goToNextPage() {
+  page = (page + 1) % pageData.length;
+  loadPage();
+}
+function goToPreviousPage() {
+  page = (page - 1 + pageData.length) % pageData.length;
+  loadPage();
+}
+
+document.getElementById("hintButton").addEventListener("click", showHint);
+loadPage();
+</script>
+
+</body>
+</html>
