@@ -1,18 +1,18 @@
-```html
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <title>Word Search Game</title>
+  <title>Word Search Game (with Timers)</title>
   <style>
     body{font-family:Arial,sans-serif;background:#f9f9f9;margin:0}
     h1{text-align:center;margin-top:20px}
     #main-container{display:flex;justify-content:center;align-items:center;gap:40px;margin-top:30px}
-    #controls{display:flex;flex-direction:column;align-items:center;gap:20px}
+    #controls{display:flex;flex-direction:column;align-items:center;gap:10px}
     .team-button{padding:15px 25px;font-size:18px;cursor:pointer;border:1px solid #aaa;border-radius:5px;width:120px;color:#fff}
     .team-button.team-a{background:red}
     .team-button.team-b{background:blue}
     .score{font-size:20px;color:#333}
+    .timer{font-size:24px;font-weight:bold;color:#222}
     #grid{display:grid;grid-template-columns:repeat(10,40px);gap:2px;justify-content:center}
     .cell{width:40px;height:40px;display:flex;align-items:center;justify-content:center;background:#fff;border:1px solid #ccc;cursor:pointer;user-select:none;font-size:18px}
     .found{background:rgba(135,206,235,.6)}
@@ -31,6 +31,7 @@
 <h1>Word Search Game</h1>
 <div id="main-container">
   <div id="controls">
+    <div class="timer" id="timerA">Time: 60</div>
     <button class="team-button team-a" onclick="selectTeam('A')">Team A</button>
     <div class="score">Score: <span id="scoreA">0</span></div>
   </div>
@@ -49,11 +50,41 @@
     </div>
   </div>
   <div id="controls">
+    <div class="timer" id="timerB">Time: 60</div>
     <button class="team-button team-b" onclick="selectTeam('B')">Team B</button>
     <div class="score">Score: <span id="scoreB">0</span></div>
   </div>
 </div>
 <script>
+// ===================== TIMER LOGIC =====================
+const timers={A:60,B:60};
+const intervals={A:null,B:null};
+function updateTimerDisplay(team){
+  document.getElementById(`timer${team}`).textContent=`Time: ${String(timers[team]).padStart(2,'0')}`;
+}
+function resetTimer(team){
+  clearInterval(intervals[team]);
+  timers[team]=60;
+  updateTimerDisplay(team);
+}
+function startTimer(team){
+  resetTimer(team); // reset to full minute before counting
+  intervals[team]=setInterval(()=>{
+    timers[team]--;
+    updateTimerDisplay(team);
+    if(timers[team]<=0){
+      clearInterval(intervals[team]);
+      flashColor("#ffdddd");
+      penalize();
+      resetSelection();
+      const expiredTeam=currentTeam; // store who expired
+      currentTeam=null;
+      resetTimer(expiredTeam);
+    }
+  },1000);
+}
+// ================= END TIMER LOGIC =====================
+
 const gridSize=10;
 let currentTeam=null,scoreA=0,scoreB=0,page=0,currentSelection=[],currentWord="",lastIndex=-1,direction=null,foundWords=new Set(),tempGrid;
 const NO_MASK=["camel","rhino","chair","fries"],OPTIONAL_MISSING=[...NO_MASK];
@@ -74,9 +105,7 @@ function updateScores(){
   document.getElementById("scoreA").textContent=(Math.round(scoreA*10)/10);
   document.getElementById("scoreB").textContent=(Math.round(scoreB*10)/10);
 }
-
 function randomLetter(){return String.fromCharCode(65+Math.floor(Math.random()*26))}
-
 function canPlace(word,r,c,dir){
   const len=word.length,endR=r+dir.dy*(len-1),endC=c+dir.dx*(len-1);
   if(endR<0||endR>=gridSize||endC<0||endC>=gridSize) return false;
@@ -86,7 +115,6 @@ function canPlace(word,r,c,dir){
   }
   return true;
 }
-
 function placeWord(word){
   for(let t=0;t<200;t++){
     const dir=directions[Math.floor(Math.random()*directions.length)],
@@ -101,26 +129,27 @@ function placeWord(word){
   }
   return false;
 }
-
 function generateGrid(words){
   tempGrid=new Array(gridSize*gridSize).fill(null);
   words.forEach(w=>placeWord(w.toUpperCase()));
   return tempGrid.map(ch=>ch||randomLetter());
 }
-
 function maskedDisplay(w){
   if(NO_MASK.includes(w)||w.length<2) return w;
   const pos=Math.floor(Math.random()*w.length);
   return w.slice(0,pos)+"_"+w.slice(pos+1);
 }
-
-function selectTeam(t){currentTeam=t;resetSelection()}
+function selectTeam(t){
+  // When a team is selected, its timer restarts and begins counting down
+  currentTeam=t;
+  resetSelection();
+  startTimer(t);
+}
 function flashColor(col){
   const o=document.body.style.backgroundColor;
   document.body.style.backgroundColor=col;
   setTimeout(()=>document.body.style.backgroundColor=o,300);
 }
-
 function resetSelection(){
   currentSelection.forEach(c=>c.classList.remove("team-a","team-b"));
   currentSelection=[];
@@ -128,13 +157,11 @@ function resetSelection(){
   lastIndex=-1;
   direction=null;
 }
-
 function penalize(){
-  if(currentTeam==='A'){scoreA-=0.5}
-  else if(currentTeam==='B'){scoreB-=0.5}
+  if(currentTeam==='A'){scoreA-=0.5; resetTimer('A');}
+  else if(currentTeam==='B'){scoreB-=0.5; resetTimer('B');}
   updateScores();
 }
-
 function wordExists(word,arr){
   const target=word.toUpperCase();
   for(let i=0;i<arr.length;i++){
@@ -152,7 +179,6 @@ function wordExists(word,arr){
   }
   return false;
 }
-
 function highlightWord(word,grid){
   const target=word.toUpperCase();
   for(let i=0;i<grid.length;i++){
@@ -173,7 +199,6 @@ function highlightWord(word,grid){
     }
   }
 }
-
 function showHint(){
   const data=pageData[page],cells=[...gridDiv.children];
   const candidates=data.words.filter(w=>!foundWords.has(w)&&wordExists(w,cells));
@@ -198,7 +223,6 @@ function showHint(){
     }
   }
 }
-
 function loadPage(){
   const data=pageData[page];
   if(!data.grid) data.grid=generateGrid(data.words);
@@ -226,9 +250,10 @@ function loadPage(){
   updateScores();
   document.getElementById("reloadButton").style.display=page===pageData.length-1?"inline-block":"none";
   resetSelection();
-  currentTeam=null;
+  currentTeam=null; // no active team on new page
+  resetTimer('A');
+  resetTimer('B');
 }
-
 function handleClick(e,cells,words){
   if(!currentTeam) return alert("Select Team first");
   const cell=e.target,idx=cells.indexOf(cell);
@@ -268,15 +293,14 @@ function handleClick(e,cells,words){
     [...wordListDiv.querySelectorAll("li")].forEach(li=>{
       if(li.dataset.word===currentWord) li.innerHTML=`<del>${li.textContent}</del>`;
     });
-    if(currentTeam==='A') scoreA+=1; else scoreB+=1;
-    updateScores();
+    if(currentTeam==='A'){ scoreA+=1; updateScores(); resetTimer('A'); }
+    else { scoreB+=1; updateScores(); resetTimer('B'); }
     resetSelection();
     currentTeam=null;
   }
 }
-
-function nextPage(){page=(page+1)%pageData.length;loadPage()}
-function prevPage(){page=(page-1+pageData.length)%pageData.length;loadPage()}
+function nextPage(){page=(page+1)%pageData.length;loadPage();}
+function prevPage(){page=(page-1+pageData.length)%pageData.length;loadPage();}
 function reloadGame(){
   scoreA=0;scoreB=0;
   pageData.forEach(p=>p.foundWords=new Set);
@@ -289,4 +313,3 @@ loadPage();
 </script>
 </body>
 </html>
-```
