@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Word Click Game</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      text-align: center;
+      padding: 40px;
+      background-color: #f0f8ff;
+    }
+    .word-button {
+      display: inline-block;
+      margin: 10px;
+      padding: 15px 25px;
+      font-size: 20px;
+      border: none;
+      border-radius: 10px;
+      background-color: #add8e6;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+    .word-button:hover {
+      background-color: #87ceeb;
+    }
+    #output {
+      margin-top: 30px;
+      font-size: 24px;
+      color: #2e8b57;
+    }
+  </style>
+</head>
+<body>
+
+  <h1>Click a Word!</h1>
+
+  <div id="word-buttons">
+    <button class="word-button" onclick="showWord('cat')">cat</button>
+    <button class="word-button" onclick="showWord('dog')">dog</button>
+    <button class="word-button" onclick="showWord('fish')">fish</button>
+    <button class="word-button" onclick="showWord('apple')">apple</button>
+    <button class="word-button" onclick="showWord('banana')">banana</button>
+    <button class="word-button" onclick="showWord('rice')">rice</button>
+    <button class="word-button" onclick="showWord('milk')">milk</button>
+    <button class="word-button" onclick="showWord('pig')">pig</button>
+    <button class="word-button" onclick="showWord('cake')">cake</button>
+    <button class="word-button" onclick="showWord('duck')">duck</button>
+  </div>
+
+  <div id="output"></div>
+
+  <script>
+    function showWord(word) {
+      document.getElementById('output').textContent = `You clicked: ${word}`;
+      co
