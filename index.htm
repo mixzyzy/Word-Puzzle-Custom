@@ -71,18 +71,67 @@
       display:none;justify-content:center;align-items:center;gap:60px;padding-top:20px
     }
     #controls{display:flex;flex-direction:column;align-items:center;gap:12px}
-    .team-button{
-      padding:15px 25px;font-size:18px;cursor:pointer;border:1px solid #aaa;border-radius:5px;
-      width:140px;color:#fff
+    .team-button {
+  padding: 15px 25px;
+  font-size: 18px;
+  font-weight: 700;
+  cursor: pointer;
+  border: none;
+  border-radius: 8px;
+  width: 140px;
+  color: #fff;
+  text-shadow: 1px 1px 2px rgba(0, 0, 0, 0.4);
+  box-shadow: 0 6px 0 rgba(0, 0, 0, 0.3), 0 8px 15px rgba(0, 0, 0, 0.2); /* Strong shadow */
+  transition: all 0.15s ease-in-out;
     }
-    .team-button.team-a{background:#e74c3c}
-    .team-button.team-b{background:#3498db}
+
+.team-button:active {
+  box-shadow: 0 2px 0 rgba(0, 0, 0, 0.3);
+  transform: translateY(4px);
+    }
+
+.team-button.team-a {
+  background: linear-gradient(to bottom, #ff5e57, #c0392b); /* More depth */
+    }
+
+.team-button.team-b {
+  background: linear-gradient(to bottom, #5dade2, #21618c); /* More depth */
+    }
+
     .score{font-size:20px;color:#333}
     .timer{font-size:26px;font-weight:bold;color:#222}
-    #grid{display:grid;grid-template-columns:repeat(10,40px);gap:2px;justify-content:center}
-    .cell{
-      width:40px;height:40px;display:flex;align-items:center;justify-content:center;
-      background:#fff;border:1px solid #ccc;cursor:pointer;user-select:none;font-size:18px
+    #grid {
+  display: grid;
+  grid-template-columns: repeat(10, 50px);
+  column-gap: 6px;
+  row-gap: 8px;
+  justify-content: center;
+    }
+
+    .cell {
+  width: 50px;
+  height: 50px;
+  margin: 0; /* Important! No extra margin */
+  background: #fff;
+  border: 1px solid #ccc;
+  font-size: 24px;
+  font-weight: bold;
+  color: #333;
+  border-radius: 10px;
+  box-shadow: 
+    0 6px 0 rgba(0, 0, 0, 0.2),   /* solid drop shadow */
+    0 8px 15px rgba(0, 0, 0, 0.3); /* softer spread shadow */
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+  
+    }
+
+    .cell:hover {
+  transform: scale(1.1);
+  box-shadow: 0 4px 8px rgba(0,0,0,0.2);
+  z-index: 1;
     }
     .found{background:rgba(135,206,235,.6)}
     .hint {background:rgba(255,255,0,.45)}
