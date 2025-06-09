@@ -4,40 +4,47 @@
   <meta charset="UTF-8">
   <title>Word Search Puzzle</title>
   <style>
-    /* ── Global Reset & Typography ── */
-    body{font-family:Arial,Helvetica,sans-serif;background:#f9f9f9;margin:0}
+    /* ── Reset & Base Typography ── */
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f9f9f9}
     h1,h2,h3{margin:0}
 
-    /* ── Title Block ── */
-    #titleWrap{text-align:center}
-    .title-small{font-size:28px;font-weight:600;color:#555}
-    .title-main {font-size:56px;font-weight:800;color:#333;line-height:1.1}
-    .title-tag  {font-size:22px;font-weight:500;color:#777;margin-top:6px}
+    /* ── Fluid title sizes for very small screens ── */
+    .title-small{font-size:clamp(18px,3vw,28px);font-weight:600;color:#555}
+    .title-main {font-size:clamp(32px,6vw,56px);font-weight:800;color:#333;line-height:1.1}
+    .title-tag  {font-size:clamp(14px,2.5vw,22px);font-weight:500;color:#777;margin-top:6px}
+    #titleWrap  {text-align:center}
 
-    /* ── Intro & Custom Screens (shared baseline) ── */
-    #intro-screen,#custom-screen{
+    /* ── 1. INTRO SCREEN: full-viewport, centered ── */
+    #intro-screen{
+      display:flex;                    /* flex container */
+      justify-content:center;          /* vertical centering  */
+      align-items:center;              /* horizontal centering */
+      height:100vh;                    /* exactly one viewport */
+      padding:0 20px;                  /* side padding only   */
+      overflow:hidden;                 /* no scroll bar ever  */
+    }
+    /* wrapper that stacks title + buttons with gap */
+    #intro-content{
       display:flex;
       flex-direction:column;
       align-items:center;
-      justify-content:flex-start;   /* start near top */
-      padding:40px 20px 0;          /* top gap (tweak 40px as needed) */
       gap:28px;
-      min-height:100vh;             /* at least full viewport */
+    }
+
+    /* ── 2. CUSTOM SCREEN: still top-aligned and scrollable ── */
+    #custom-screen{
+      display:flex;
+      flex-direction:column;
+      align-items:center;
+      justify-content:flex-start;
+      gap:28px;
+      padding:40px 20px 0;             /* top gap for header */
+      min-height:100vh;                /* tall enough for large screens */
+      overflow:auto;                   /* allow scroll to page-10 input */
       text-align:center;
     }
 
-    /* 1️⃣ Intro: exact viewport, no scroll bar */
-    #intro-screen{
-      height:100vh;
-      overflow:hidden;
-    }
-
-    /* 2️⃣ Custom: allow scrolling to reach all inputs */
-    #custom-screen{
-      overflow:auto;                /* natural scroll */
-    }
-
-    /* ── Buttons & Inputs ── */
+    /* ---- Buttons & Inputs ---- */
     .start-button{
       padding:18px 38px;font-size:20px;font-weight:600;border:none;border-radius:8px;
       cursor:pointer;box-shadow:0 4px 8px rgba(0,0,0,.15);transition:transform .15s ease
@@ -50,7 +57,7 @@
       width:100%;padding:10px 12px;font-size:16px;border:1px solid #bbb;border-radius:6px
     }
 
-    /* ── Home Button ── */
+    /* ---- Home Button ---- */
     #homeBtn{
       position:fixed;top:20px;left:20px;display:none;padding:12px 22px;font-size:16px;
       font-weight:600;border:none;border-radius:6px;background:#95a5a6;color:#fff;
@@ -59,7 +66,7 @@
     }
     #homeBtn:hover{transform:translateY(-2px)}
 
-    /* ── Game Layout ── */
+    /* ---- Game Layout ---- */
     #main-container{
       display:none;justify-content:center;align-items:center;gap:60px;padding-top:20px
     }
@@ -103,15 +110,17 @@
 
 <!-- ░░ INTRO SCREEN ░░ -->
 <div id="intro-screen">
-  <div id="titleWrap">
-    <div class="title-small">welcome to the</div>
-    <div class="title-main">Word Search Puzzle</div>
-    <div class="title-tag">english is easy!</div>
-  </div>
+  <div id="intro-content">   <!-- new wrapper for centering -->
+    <div id="titleWrap">
+      <div class="title-small">welcome to the</div>
+      <div class="title-main">Word Search Puzzle</div>
+      <div class="title-tag">english is easy!</div>
+    </div>
 
-  <div id="btn-box">
-    <button id="quickBtn"  class="start-button" style="background:#2ecc71;color:#fff">Quick&nbsp;Start</button>
-    <button id="customBtn" class="start-button" style="background:#f1c40f;color:#333">Custom</button>
+    <div id="btn-box">
+      <button id="quickBtn"  class="start-button" style="background:#2ecc71;color:#fff">Quick&nbsp;Start</button>
+      <button id="customBtn" class="start-button" style="background:#f1c40f;color:#333">Custom</button>
+    </div>
   </div>
 </div>
 
@@ -132,7 +141,6 @@
 
   <div>
     <div id="grid"></div>
-
     <div id="wordBox">
       <div id="wordList"></div>
       <button id="hintButton">Hint</button>
@@ -154,7 +162,7 @@
 </div>
 
 <script>
-/* ────────── Default Word Sets ────────── */
+/* ------------- Default Word Sets (10 pages) ------------- */
 const defaultWordSets = [
   ['cat','dog','fish','apple','banana','rice','milk','pig','cake','duck'],
   ['tiger','zebra','panda','monkey','lion','bear','wolf','horse','camel','rhino'],
@@ -169,11 +177,10 @@ const defaultWordSets = [
 ];
 let pageData = defaultWordSets.map(words => ({ words }));
 
-/* ────────── Game Constants & State ────────── */
+/* ------------- Game Constants & State ------------- */
 const gridSize = 10;
 const timers   = { A:60, B:60 };
 const intervals= { A:null, B:null };
-
 const directions = [
   {dx:1, dy:0, delta:1},
   {dx:0, dy:1, delta:gridSize},
@@ -181,31 +188,28 @@ const directions = [
   {dx:1, dy:-1,delta:-gridSize+1}
 ];
 const allowed = directions.map(d => d.delta);
-
-const NO_MASK          = ['camel','rhino','chair','fries'];
-const OPTIONAL_MISSING = [...NO_MASK];
+const NO_MASK=['camel','rhino','chair','fries'];
+const OPTIONAL_MISSING=[...NO_MASK];
 
 let page = 0, currentTeam=null, scoreA=0, scoreB=0;
 let currentSelection=[], currentWord='', lastIndex=-1, direction=null;
 let foundWords=new Set(), tempGrid;
+const gridDiv=document.getElementById('grid');
 
-const gridDiv = document.getElementById('grid');
-
-/* ────────── Screen Navigation ────────── */
-const homeBtn = document.getElementById('homeBtn');
-homeBtn.onclick = goHome;
-function showHomeBtn(flag){homeBtn.style.display = flag ? 'block':'none';}
+/* ------------- Screen Navigation ------------- */
+const homeBtn=document.getElementById('homeBtn');
+homeBtn.onclick=goHome;
+function showHomeBtn(flag){homeBtn.style.display=flag?'block':'none';}
 function goHome(){
-  document.getElementById('intro-screen').style.display  = 'flex';
-  document.getElementById('custom-screen').style.display = 'none';
-  document.getElementById('main-container').style.display= 'none';
+  document.getElementById('intro-screen').style.display='flex';
+  document.getElementById('custom-screen').style.display='none';
+  document.getElementById('main-container').style.display='none';
   showHomeBtn(false);
-  currentTeam=null;
-  ['A','B'].forEach(resetTimer);
+  currentTeam=null; ['A','B'].forEach(resetTimer);
 }
 
-/* ────────── Intro / Custom Flow ────────── */
-document.getElementById('quickBtn' ).onclick = quickStart;
+/* Intro / Custom Flow */
+document.getElementById('quickBtn').onclick  = quickStart;
 document.getElementById('customBtn').onclick = showCustom;
 document.getElementById('startCustomBtn').onclick = startCustom;
 
@@ -213,8 +217,7 @@ function quickStart(){
   pageData = defaultWordSets.map(words => ({ words:[...words] }));
   document.getElementById('intro-screen').style.display='none';
   document.getElementById('main-container').style.display='flex';
-  showHomeBtn(true);
-  reloadGame();
+  showHomeBtn(true); reloadGame();
 }
 function showCustom(){
   document.getElementById('intro-screen').style.display='none';
@@ -223,123 +226,91 @@ function showCustom(){
   showHomeBtn(true);
 }
 function buildCustomForm(){
-  const wrapper = document.getElementById('wordInputs');
-  wrapper.innerHTML='';
+  const wrap=document.getElementById('wordInputs'); wrap.innerHTML='';
   defaultWordSets.forEach((arr,idx)=>{
-    wrapper.insertAdjacentHTML('beforeend',`
+    wrap.insertAdjacentHTML('beforeend',`
       <div class="page-input">
         <label>Words for page ${idx+1}:</label>
         <input type="text" placeholder="${arr.join(',')}" data-page="${idx}">
-      </div>`);
-  });
+      </div>`);});
 }
 function startCustom(){
   const lists=[];
   document.querySelectorAll('#wordInputs input').forEach(inp=>{
-    const txt = inp.value.trim();
-    lists.push(
-      txt ? txt.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean).slice(0,10)
-          : defaultWordSets[inp.dataset.page]
-    );
+    const txt=inp.value.trim();
+    lists.push(txt?txt.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean).slice(0,10)
+                  :defaultWordSets[inp.dataset.page]);
   });
-  pageData = lists.map(words=>({ words }));
+  pageData=lists.map(words=>({words}));
   document.getElementById('custom-screen').style.display='none';
   document.getElementById('main-container').style.display='flex';
   reloadGame();
 }
 
-/* ────────── Timer Functions ────────── */
+/* ------------- Timer Functions ------------- */
 function updateTimerDisplay(t){
   document.getElementById(`timer${t}`).textContent =
-      `Time: ${String(timers[t]).padStart(2,'0')}`;
+    `Time: ${String(timers[t]).padStart(2,'0')}`;
 }
-function resetTimer(t){
-  clearInterval(intervals[t]);
-  timers[t]=60;
-  updateTimerDisplay(t);
-}
+function resetTimer(t){ clearInterval(intervals[t]); timers[t]=60; updateTimerDisplay(t);}
 function startTimer(t){
   resetTimer(t);
   intervals[t]=setInterval(()=>{
-    timers[t]--;
-    updateTimerDisplay(t);
-    if(timers[t]<=0){
-      clearInterval(intervals[t]);
-      flashColor('#ffdddd');
-      penalize();
-      resetSelection();
-      const expired=currentTeam;
-      currentTeam=null;
-      resetTimer(expired);
-    }
+    timers[t]--; updateTimerDisplay(t);
+    if(timers[t]<=0){clearInterval(intervals[t]); flashColor('#ffdddd');
+      penalize(); resetSelection(); const ex=currentTeam; currentTeam=null; resetTimer(ex);}
   },1000);
 }
 
-/* ────────── Grid Generation ────────── */
-const randomLetter = ()=>String.fromCharCode(65+Math.floor(Math.random()*26));
+/* ------------- Grid Generation ------------- */
+const randomLetter=()=>String.fromCharCode(65+Math.floor(Math.random()*26));
 function canPlace(word,r,c,dir){
-  const len=word.length;
-  const endR=r+dir.dy*(len-1), endC=c+dir.dx*(len-1);
-  if(endR<0||endR>=gridSize||endC<0||endC>=gridSize) return false;
+  const len=word.length,endR=r+dir.dy*(len-1),endC=c+dir.dx*(len-1);
+  if(endR<0||endR>=gridSize||endC<0||endC>=gridSize)return false;
   for(let i=0;i<len;i++){
-    const idx=(r+dir.dy*i)*gridSize + (c+dir.dx*i);
-    if(tempGrid[idx] && tempGrid[idx]!==word[i]) return false;
-  }
+    const idx=(r+dir.dy*i)*gridSize+(c+dir.dx*i);
+    if(tempGrid[idx]&&tempGrid[idx]!==word[i])return false;}
   return true;
 }
 function placeWord(word){
   for(let t=0;t<300;t++){
     const dir=directions[Math.floor(Math.random()*directions.length)];
-    const r  =Math.floor(Math.random()*gridSize);
-    const c  =Math.floor(Math.random()*gridSize);
-    if(!canPlace(word,r,c,dir)) continue;
+    const r=Math.floor(Math.random()*gridSize),c=Math.floor(Math.random()*gridSize);
+    if(!canPlace(word,r,c,dir))continue;
     for(let i=0;i<word.length;i++){
-      const idx=(r+dir.dy*i)*gridSize + (c+dir.dx*i);
-      tempGrid[idx]=word[i];
-    }
+      const idx=(r+dir.dy*i)*gridSize+(c+dir.dx*i); tempGrid[idx]=word[i];}
     return true;
-  }
-  return false;
+  } return false;
 }
 function generateGrid(words){
   tempGrid=new Array(gridSize*gridSize).fill(null);
   words.forEach(w=>placeWord(w.toUpperCase()));
-  return tempGrid.map(ch=>ch || randomLetter());
+  return tempGrid.map(ch=>ch||randomLetter());
 }
 
-/* ────────── Helper UI ────────── */
+/* ------------- Helper UI ------------- */
 function maskedDisplay(w){
-  if(NO_MASK.includes(w)||w.length<2) return w;
+  if(NO_MASK.includes(w)||w.length<2)return w;
   const pos=Math.floor(Math.random()*w.length);
   return w.slice(0,pos)+'_'+w.slice(pos+1);
 }
 function flashColor(col){
-  const original=document.body.style.backgroundColor;
+  const orig=document.body.style.backgroundColor;
   document.body.style.backgroundColor=col;
-  setTimeout(()=>document.body.style.backgroundColor=original,300);
-}
+  setTimeout(()=>document.body.style.backgroundColor=orig,300);}
 function updateScores(){
-  document.getElementById('scoreA').textContent = scoreA.toFixed(1);
-  document.getElementById('scoreB').textContent = scoreB.toFixed(1);
-}
+  document.getElementById('scoreA').textContent=scoreA.toFixed(1);
+  document.getElementById('scoreB').textContent=scoreB.toFixed(1);}
 
-/* ────────── Team / Selection ────────── */
-function selectTeam(t){
-  currentTeam=t;
-  resetSelection();
-  startTimer(t);
-}
+/* ------------- Team / Selection ------------- */
+function selectTeam(t){currentTeam=t; resetSelection(); startTimer(t);}
 function resetSelection(){
   currentSelection.forEach(c=>c.classList.remove('team-a','team-b'));
-  currentSelection=[]; currentWord=''; lastIndex=-1; direction=null;
-}
-function penalize(){
-  if(currentTeam==='A'){scoreA-=0.5;resetTimer('A');}
-  else if(currentTeam==='B'){scoreB-=0.5;resetTimer('B');}
-  updateScores();
-}
+  currentSelection=[]; currentWord=''; lastIndex=-1; direction=null;}
+function penalize(){ if(currentTeam==='A'){scoreA-=0.5;resetTimer('A');}
+  else if(currentTeam==='B'){scoreB-=0.5;resetTimer('B');} updateScores();}
 
-/* ────────── Word-search Helpers ────────── */
+/* ------------- Word-search Helpers ------------- */
 function wordExists(word,cells){
   const target=word.toUpperCase();
   for(let i=0;i<cells.length;i++){
@@ -348,14 +319,11 @@ function wordExists(word,cells){
       for(let j=0;j<target.length;j++){
         const idx=i+j*d;
         if(idx<0||idx>=cells.length){ok=false;break;}
-        if(d===1 && Math.floor(idx/gridSize)!==Math.floor(i/gridSize)){ok=false;break;}
-        const ch=cells[idx].textContent||cells[idx];
-        if(ch!==target[j]){ok=false;break;}
-      }
-      if(ok) return true;
+        if(d===1&&Math.floor(idx/gridSize)!==Math.floor(i/gridSize)){ok=false;break;}
+        const ch=cells[idx].textContent||cells[idx]; if(ch!==target[j]){ok=false;break;}
+      } if(ok)return true;
     }
-  }
-  return false;
+  } return false;
 }
 function highlightWord(word,cells){
   const target=word.toUpperCase();
@@ -364,170 +332,105 @@ function highlightWord(word,cells){
       const pos=[],built=[];
       for(let j=0;j<target.length;j++){
         const idx=i+j*d;
-        if(idx<0||idx>=cells.length) break;
-        if(d===1 && Math.floor(idx/gridSize)!==Math.floor(i/gridSize)) break;
-        const cell=cells[idx];
-        built.push(cell.textContent);
-        pos.push(cell);
-      }
-      if(built.join('')===target){
-        pos.forEach(c=>c.classList.add('found'));
-        return;
-      }
+        if(idx<0||idx>=cells.length)break;
+        if(d===1&&Math.floor(idx/gridSize)!==Math.floor(i/gridSize))break;
+        const cell=cells[idx]; built.push(cell.textContent); pos.push(cell);}
+      if(built.join('')===target){pos.forEach(c=>c.classList.add('found'));return;}
     }
   }
 }
 function showHint(){
-  const data=pageData[page];
-  const cells=[...gridDiv.children];
-  const candidates=data.words.filter(w=>!foundWords.has(w)&&wordExists(w,cells));
-  if(!candidates.length) return alert('No more hints');
-  const word=candidates[Math.floor(Math.random()*candidates.length)].toUpperCase();
+  const data=pageData[page]; const cells=[...gridDiv.children];
+  const cand=data.words.filter(w=>!foundWords.has(w)&&wordExists(w,cells));
+  if(!cand.length)return alert('No more hints');
+  const word=cand[Math.floor(Math.random()*cand.length)].toUpperCase();
   for(let i=0;i<cells.length;i++){
     for(const d of allowed){
       const pos=[],built=[];
       for(let j=0;j<word.length;j++){
         const idx=i+j*d;
-        if(idx<0||idx>=cells.length) break;
-        if(d===1 && Math.floor(idx/gridSize)!==Math.floor(i/gridSize)) break;
-        const cell=cells[idx];
-        built.push(cell.textContent);
-        pos.push(cell);
-      }
+        if(idx<0||idx>=cells.length)break;
+        if(d===1&&Math.floor(idx/gridSize)!==Math.floor(i/gridSize))break;
+        const cell=cells[idx]; built.push(cell.textContent); pos.push(cell);}
       if(built.join('')===word){
         pos.forEach(c=>c.classList.add('hint'));
-        setTimeout(()=>pos.forEach(c=>c.classList.remove('hint')),1000);
-        return;
-      }
+        setTimeout(()=>pos.forEach(c=>c.classList.remove('hint')),1000);return;}
     }
   }
 }
 
-/* ────────── Page Handling ────────── */
+/* ------------- Page Handling ------------- */
 function loadPage(){
   const data=pageData[page];
-
-  if(!data.grid)       data.grid=generateGrid(data.words);
-  if(!data.foundWords) data.foundWords=new Set();
+  if(!data.grid)data.grid=generateGrid(data.words);
+  if(!data.foundWords)data.foundWords=new Set();
   foundWords=data.foundWords;
 
   OPTIONAL_MISSING.forEach(w=>{
-    if(data.words.includes(w) && !wordExists(w,[...data.grid]) && !foundWords.has(w))
-      foundWords.add(w);
-  });
+    if(data.words.includes(w)&&!wordExists(w,[...data.grid])&&!foundWords.has(w))
+      foundWords.add(w);});
 
-  /* draw grid */
   gridDiv.innerHTML='';
   data.grid.forEach(l=>{
     const cell=document.createElement('div');
-    cell.className='cell';
-    cell.textContent=l;
-    gridDiv.appendChild(cell);
-  });
+    cell.className='cell'; cell.textContent=l; gridDiv.appendChild(cell);});
 
-  /* draw word list */
   document.getElementById('pageLabel').textContent=`Page ${page+1}`;
-  document.getElementById('wordList').innerHTML=
-    '<h3>Find These Words:</h3><ol>'+
-    data.words.map(w=>
-        foundWords.has(w)
-          ?`<li data-word=\"${w}\"><del>${maskedDisplay(w)}</del></li>`
-          :`<li data-word=\"${w}\">${maskedDisplay(w)}</li>`
-      ).join('')+'</ol>';
+  document.getElementById('wordList').innerHTML='<h3>Find These Words:</h3><ol>'+
+    data.words.map(w=>foundWords.has(w)
+        ?`<li data-word=\"${w}\"><del>${maskedDisplay(w)}</del></li>`
+        :`<li data-word=\"${w}\">${maskedDisplay(w)}</li>`
+    ).join('')+'</ol>';
 
-  /* hook cell clicks */
   const cells=[...gridDiv.children];
   cells.forEach(c=>c.addEventListener('click',e=>handleClick(e,cells,data.words)));
-
-  /* re-highlight previously found */
   foundWords.forEach(w=>highlightWord(w,cells));
 
   updateScores();
   document.getElementById('reloadButton').style.display =
-      page===pageData.length-1 ? 'inline-block':'none';
+    page===pageData.length-1?'inline-block':'none';
 
-  resetSelection();
-  currentTeam=null;
-  resetTimer('A');
-  resetTimer('B');
+  resetSelection(); currentTeam=null; resetTimer('A'); resetTimer('B');
 }
 
-/* ────────── Cell Click Handler ────────── */
+/* Cell Click Handler */
 function handleClick(e,cells,words){
-  if(!currentTeam) return alert('Select Team first');
+  if(!currentTeam)return alert('Select Team first');
+  const cell=e.target, idx=cells.indexOf(cell);
+  if(!cell.textContent.match(/[A-Z]/))return;
 
-  const cell=e.target;
-  const idx =cells.indexOf(cell);
-  if(!cell.textContent.match(/[A-Z]/)) return;
-
-  /* first letter */
   if(lastIndex===-1){
-    currentSelection.push(cell);
-    currentWord+=cell.textContent.toLowerCase();
-    cell.classList.add(currentTeam==='A'?'team-a':'team-b');
-    lastIndex=idx;
-    return;
-  }
-
+    currentSelection.push(cell); currentWord+=cell.textContent.toLowerCase();
+    cell.classList.add(currentTeam==='A'?'team-a':'team-b'); lastIndex=idx; return;}
   const diff=idx-lastIndex;
-  if(direction===null && allowed.includes(diff)) direction=diff;
-  if(idx!==lastIndex+direction){
-    flashColor('#ffdddd');
-    penalize();
-    resetSelection();
-    currentTeam=null;
-    return;
-  }
-
-  currentSelection.push(cell);
-  currentWord+=cell.textContent.toLowerCase();
-  cell.classList.add(currentTeam==='A'?'team-a':'team-b');
-  lastIndex=idx;
-
-  /* early fail */
-  if(!words.some(w=>w.startsWith(currentWord))){
-    flashColor('#ffdddd');
-    penalize();
-    resetSelection();
-    currentTeam=null;
-    return;
-  }
-
-  /* full word matched */
-  if(words.includes(currentWord) && !foundWords.has(currentWord)){
+  if(direction===null&&allowed.includes(diff))direction=diff;
+  if(idx!==lastIndex+direction){flashColor('#ffdddd');penalize();resetSelection();
+    currentTeam=null;return;}
+  currentSelection.push(cell); currentWord+=cell.textContent.toLowerCase();
+  cell.classList.add(currentTeam==='A'?'team-a':'team-b'); lastIndex=idx;
+  if(!words.some(w=>w.startsWith(currentWord))){flashColor('#ffdddd'); penalize();
+    resetSelection(); currentTeam=null; return;}
+  if(words.includes(currentWord)&&!foundWords.has(currentWord)){
     flashColor('#ddffdd');
     currentSelection.forEach(c=>c.classList.remove('team-a','team-b'));
     currentSelection.forEach(c=>c.classList.add('found'));
     foundWords.add(currentWord);
-
-    /* strike-through in list */
     [...document.querySelectorAll('#wordList li')].forEach(li=>{
-      if(li.dataset.word===currentWord)
-        li.innerHTML=`<del>${li.textContent}</del>`;
-    });
-
+      if(li.dataset.word===currentWord)li.innerHTML=`<del>${li.textContent}</del>`;});
     if(currentTeam==='A'){scoreA+=1;resetTimer('A');}
     else                 {scoreB+=1;resetTimer('B');}
-    updateScores();
-
-    resetSelection();
-    currentTeam=null;
-  }
+    updateScores(); resetSelection(); currentTeam=null;}
 }
 
-/* ────────── Navigation & Reset ────────── */
+/* Navigation & Reset */
 function nextPage(){page=(page+1)%pageData.length;loadPage();}
 function prevPage(){page=(page-1+pageData.length)%pageData.length;loadPage();}
 function reloadGame(){
-  scoreA=0; scoreB=0;
-  pageData.forEach(p=>p.foundWords=new Set());
-  page=0;
-  loadPage();
-}
+  scoreA=0; scoreB=0; pageData.forEach(p=>p.foundWords=new Set()); page=0; loadPage();}
 
-/* ────────── INIT ────────── */
-document.getElementById('hintButton').onclick = showHint;
-loadPage();   // prepare first puzzle (visible once game screen shows)
+/* INIT */
+document.getElementById('hintButton').onclick=showHint;
+loadPage(); /* game preps – visible only after Quick Start/Custom */
 </script>
 </body>
 </html>
