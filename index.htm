@@ -5,25 +5,25 @@
   <title>Word Search Puzzle</title>
   <style>
     /* ── Reset & Base Typography ── */
-    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f9f9f9;display:flex;flex-direction:column;min-height:100vh}
+    body{margin:0;font-family:Arial,Helvetica,sans-serif;background:#f9f9f9}
     h1,h2,h3{margin:0}
 
-    /* ── Fluid title sizes ── */
+    /* ── Fluid title sizes for very small screens ── */
     .title-small{font-size:clamp(18px,3vw,28px);font-weight:600;color:#555}
     .title-main {font-size:clamp(32px,6vw,56px);font-weight:800;color:#333;line-height:1.1}
     .title-tag  {font-size:clamp(14px,2.5vw,22px);font-weight:500;color:#777;margin-top:6px}
     #titleWrap  {text-align:center}
 
-    /* ── 1. INTRO SCREEN ── */
+    /* ── 1. INTRO SCREEN: full-viewport, centered ── */
     #intro-screen{
-      flex:1 0 auto;                 /* allow footer to stick at very bottom */
-      display:flex;
-      justify-content:center;
-      align-items:center;
-      height:100vh;
-      padding:0 20px;
-      overflow:hidden;
+      display:flex;                    /* flex container */
+      justify-content:center;          /* vertical centering  */
+      align-items:center;              /* horizontal centering */
+      height:100vh;                    /* exactly one viewport */
+      padding:0 20px;                  /* side padding only   */
+      overflow:hidden;                 /* no scroll bar ever  */
     }
+    /* wrapper that stacks title + buttons with gap */
     #intro-content{
       display:flex;
       flex-direction:column;
@@ -31,17 +31,16 @@
       gap:28px;
     }
 
-    /* ── 2. CUSTOM SCREEN ── */
+    /* ── 2. CUSTOM SCREEN: still top-aligned and scrollable ── */
     #custom-screen{
-      flex:1 0 auto;
       display:flex;
       flex-direction:column;
       align-items:center;
       justify-content:flex-start;
       gap:28px;
-      padding:40px 20px 0;
-      min-height:100vh;
-      overflow:auto;
+      padding:40px 20px 0;             /* top gap for header */
+      min-height:100vh;                /* tall enough for large screens */
+      overflow:auto;                   /* allow scroll to page-10 input */
       text-align:center;
     }
 
@@ -69,7 +68,6 @@
 
     /* ---- Game Layout ---- */
     #main-container{
-      flex:1 0 auto;
       display:none;justify-content:center;align-items:center;gap:60px;padding-top:20px
     }
     #controls{display:flex;flex-direction:column;align-items:center;gap:12px}
@@ -104,17 +102,6 @@
     #reloadButton{
       margin-top:15px;padding:10px 20px;font-size:16px;cursor:pointer;display:none
     }
-
-    /* ── Footer ── */
-    footer{
-      flex-shrink:0;                  /* keep footer at bottom */
-      text-align:center;
-      font-size:14px;
-      color:#666;
-      padding:16px 8px 20px;
-    }
-    footer .icon{margin-right:4px}
-    footer span{margin:0 6px}
   </style>
 </head>
 
@@ -123,7 +110,7 @@
 
 <!-- ░░ INTRO SCREEN ░░ -->
 <div id="intro-screen">
-  <div id="intro-content">
+  <div id="intro-content">   <!-- new wrapper for centering -->
     <div id="titleWrap">
       <div class="title-small">welcome to the</div>
       <div class="title-main">Word Search Puzzle</div>
@@ -174,146 +161,276 @@
   </div>
 </div>
 
-<!-- ░░ FOOTER ░░ -->
-<footer>
-  creator : <strong>Mixzy Indrajaya</strong><br>
-  <span><span class="icon">🔗</span>Linkedin: /mixzyindrajaya</span> |
-  <span><span class="icon">✉️</span>E-mail: mixzy.indrajaya@gmail.com</span>
-</footer>
-
 <script>
-/* ---------- Default Word Sets (10 pages) ---------- */
-const defaultWordSets=[/* ... same content as before ... */];
-let pageData=defaultWordSets.map(words=>({words}));
+/* ------------- Default Word Sets (10 pages) ------------- */
+const defaultWordSets = [
+  ['cat','dog','fish','apple','banana','rice','milk','pig','cake','duck'],
+  ['tiger','zebra','panda','monkey','lion','bear','wolf','horse','camel','rhino'],
+  ['pizza','burger','sushi','pasta','noodle','steak','fries','salad','bread','cheese'],
+  ['red','blue','green','yellow','purple','orange','white','black','pink','brown'],
+  ['grape','pen','cloud','car','juice','dog','chair','bag','milk','cat'],
+  ['apple','sun','ball','book','rice','bird','ice','fan','egg','toy'],
+  ['goat','frog','owl','cow','hen','ant','bee','bat','rat','fox'],
+  ['bread','rice','corn','soup','milk','water','juice','tea','cake','honey'],
+  ['apple','grape','pear','peach','plum','melon','lemon','kiwi','berry','fig'],
+  ['book','ball','pen','desk','chair','lamp','door','sock','shoe','bag']
+];
+let pageData = defaultWordSets.map(words => ({ words }));
 
-/* ---------- Game Constants & State ---------- */
-const gridSize=10,timers={A:60,B:60},intervals={A:null,B:null};
-const directions=[{dx:1,dy:0,delta:1},{dx:0,dy:1,delta:gridSize},{dx:1,dy:1,delta:gridSize+1},{dx:1,dy:-1,delta:-gridSize+1}],
-      allowed=directions.map(d=>d.delta),
-      NO_MASK=['camel','rhino','chair','fries'],
-      OPTIONAL_MISSING=[...NO_MASK];
-let page=0,currentTeam=null,scoreA=0,scoreB=0,currentSelection=[],currentWord='',lastIndex=-1,direction=null,foundWords=new Set(),tempGrid;
+/* ------------- Game Constants & State ------------- */
+const gridSize = 10;
+const timers   = { A:60, B:60 };
+const intervals= { A:null, B:null };
+const directions = [
+  {dx:1, dy:0, delta:1},
+  {dx:0, dy:1, delta:gridSize},
+  {dx:1, dy:1, delta:gridSize+1},
+  {dx:1, dy:-1,delta:-gridSize+1}
+];
+const allowed = directions.map(d => d.delta);
+const NO_MASK=['camel','rhino','chair','fries'];
+const OPTIONAL_MISSING=[...NO_MASK];
+
+let page = 0, currentTeam=null, scoreA=0, scoreB=0;
+let currentSelection=[], currentWord='', lastIndex=-1, direction=null;
+let foundWords=new Set(), tempGrid;
 const gridDiv=document.getElementById('grid');
 
-/* ---------- Navigation / Home ---------- */
+/* ------------- Screen Navigation ------------- */
 const homeBtn=document.getElementById('homeBtn');
 homeBtn.onclick=goHome;
-function showHomeBtn(f){homeBtn.style.display=f?'block':'none';}
+function showHomeBtn(flag){homeBtn.style.display=flag?'block':'none';}
 function goHome(){
   document.getElementById('intro-screen').style.display='flex';
   document.getElementById('custom-screen').style.display='none';
   document.getElementById('main-container').style.display='none';
-  showHomeBtn(false); currentTeam=null; ['A','B'].forEach(resetTimer);
+  showHomeBtn(false);
+  currentTeam=null; ['A','B'].forEach(resetTimer);
 }
 
-/* ---------- Intro / Custom Flow ---------- */
-document.getElementById('quickBtn').onclick=quickStart;
-document.getElementById('customBtn').onclick=showCustom;
-document.getElementById('startCustomBtn').onclick=startCustom;
-function quickStart(){pageData=defaultWordSets.map(words=>({words:[...words]}));
+/* Intro / Custom Flow */
+document.getElementById('quickBtn').onclick  = quickStart;
+document.getElementById('customBtn').onclick = showCustom;
+document.getElementById('startCustomBtn').onclick = startCustom;
+
+function quickStart(){
+  pageData = defaultWordSets.map(words => ({ words:[...words] }));
   document.getElementById('intro-screen').style.display='none';
   document.getElementById('main-container').style.display='flex';
-  showHomeBtn(true); reloadGame();}
-function showCustom(){document.getElementById('intro-screen').style.display='none';
-  buildCustomForm(); document.getElementById('custom-screen').style.display='flex'; showHomeBtn(true);}
-function buildCustomForm(){const wrap=document.getElementById('wordInputs');wrap.innerHTML='';
-  defaultWordSets.forEach((arr,i)=>{wrap.insertAdjacentHTML('beforeend',`
-    <div class="page-input">
-      <label>Words for page ${i+1}:</label>
-      <input type="text" placeholder="${arr.join(',')}" data-page="${i}">
-    </div>`);});}
-function startCustom(){const lists=[];
+  showHomeBtn(true); reloadGame();
+}
+function showCustom(){
+  document.getElementById('intro-screen').style.display='none';
+  buildCustomForm();
+  document.getElementById('custom-screen').style.display='flex';
+  showHomeBtn(true);
+}
+function buildCustomForm(){
+  const wrap=document.getElementById('wordInputs'); wrap.innerHTML='';
+  defaultWordSets.forEach((arr,idx)=>{
+    wrap.insertAdjacentHTML('beforeend',`
+      <div class="page-input">
+        <label>Words for page ${idx+1}:</label>
+        <input type="text" placeholder="${arr.join(',')}" data-page="${idx}">
+      </div>`);});
+}
+function startCustom(){
+  const lists=[];
   document.querySelectorAll('#wordInputs input').forEach(inp=>{
     const txt=inp.value.trim();
     lists.push(txt?txt.split(',').map(s=>s.trim().toLowerCase()).filter(Boolean).slice(0,10)
-                  :defaultWordSets[inp.dataset.page]);});
+                  :defaultWordSets[inp.dataset.page]);
+  });
   pageData=lists.map(words=>({words}));
   document.getElementById('custom-screen').style.display='none';
   document.getElementById('main-container').style.display='flex';
-  reloadGame();}
-
-/* ---------- Timer ---------- */
-function updateTimerDisplay(t){document.getElementById(`timer${t}`).textContent=`Time: ${String(timers[t]).padStart(2,'0')}`;}
-function resetTimer(t){clearInterval(intervals[t]);timers[t]=60;updateTimerDisplay(t);}
-function startTimer(t){resetTimer(t);intervals[t]=setInterval(()=>{timers[t]--;updateTimerDisplay(t);
-  if(timers[t]<=0){clearInterval(intervals[t]);flashColor('#ffdddd');penalize();resetSelection();const ex=currentTeam;currentTeam=null;resetTimer(ex);}},1000);}
-
-/* ---------- Grid Helpers ---------- */
-const randomLetter=()=>String.fromCharCode(65+Math.floor(Math.random()*26));
-function canPlace(w,r,c,dir){if(r+dir.dy*(w.length-1)<0||r+dir.dy*(w.length-1)>=gridSize||c+dir.dx*(w.length-1)<0||c+dir.dx*(w.length-1)>=gridSize)return false;
-  for(let i=0;i<w.length;i++){const idx=(r+dir.dy*i)*gridSize+(c+dir.dx*i);if(tempGrid[idx]&&tempGrid[idx]!==w[i])return false;}return true;}
-function placeWord(w){for(let t=0;t<300;t++){const dir=directions[Math.floor(Math.random()*directions.length)],r=Math.floor(Math.random()*gridSize),c=Math.floor(Math.random()*gridSize);
-  if(!canPlace(w,r,c,dir))continue;for(let i=0;i<w.length;i++){const idx=(r+dir.dy*i)*gridSize+(c+dir.dx*i);tempGrid[idx]=w[i];}return true;}return false;}
-function generateGrid(arr){tempGrid=new Array(gridSize*gridSize).fill(null);arr.forEach(w=>placeWord(w.toUpperCase()));return tempGrid.map(ch=>ch||randomLetter());}
-
-/* ---------- UI helpers ---------- */
-function maskedDisplay(w){if(NO_MASK.includes(w)||w.length<2)return w;const p=Math.floor(Math.random()*w.length);return w.slice(0,p)+'_'+w.slice(p+1);}
-function flashColor(c){const o=document.body.style.backgroundColor;document.body.style.backgroundColor=c;setTimeout(()=>document.body.style.backgroundColor=o,300);}
-function updateScores(){document.getElementById('scoreA').textContent=scoreA.toFixed(1);document.getElementById('scoreB').textContent=scoreB.toFixed(1);}
-
-/* ---------- Team/Selection ---------- */
-function selectTeam(t){currentTeam=t;resetSelection();startTimer(t);}
-function resetSelection(){currentSelection.forEach(c=>c.classList.remove('team-a','team-b'));currentSelection=[];currentWord='';lastIndex=-1;direction=null;}
-function penalize(){if(currentTeam==='A'){scoreA-=0.5;resetTimer('A');}else if(currentTeam==='B'){scoreB-=0.5;resetTimer('B');}updateScores();}
-
-/* ---------- Word-search Logic ---------- */
-function wordExists(w,cells){const target=w.toUpperCase();
-  for(let i=0;i<cells.length;i++){for(const d of allowed){let ok=true;
-    for(let j=0;j<target.length;j++){const idx=i+j*d;if(idx<0||idx>=cells.length){ok=false;break;}
-      if(d===1&&Math.floor(idx/gridSize)!==Math.floor(i/gridSize)){ok=false;break;}
-      if(cells[idx].textContent!==target[j]){ok=false;break;}}
-    if(ok)return true;}}return false;}
-function highlightWord(w,cells){const t=w.toUpperCase();
-  for(let i=0;i<cells.length;i++){for(const d of allowed){const pos=[],built=[];
-    for(let j=0;j<t.length;j++){const idx=i+j*d;if(idx<0||idx>=cells.length)break;
-      if(d===1&&Math.floor(idx/gridSize)!==Math.floor(i/gridSize))break;
-      const cell=cells[idx];built.push(cell.textContent);pos.push(cell);}
-    if(built.join('')===t){pos.forEach(c=>c.classList.add('found'));return;}}}}
-function showHint(){const data=pageData[page],cells=[...gridDiv.children],
-  cand=data.words.filter(w=>!foundWords.has(w)&&wordExists(w,cells));
-  if(!cand.length)return alert('No more hints');const word=cand[Math.floor(Math.random()*cand.length)].toUpperCase();
-  for(let i=0;i<cells.length;i++){for(const d of allowed){const pos=[],built=[];
-    for(let j=0;j<word.length;j++){const idx=i+j*d;if(idx<0||idx>=cells.length)break;
-      if(d===1&&Math.floor(idx/gridSize)!==Math.floor(i/gridSize))break;
-      const cell=cells[idx];built.push(cell.textContent);pos.push(cell);}
-    if(built.join('')===word){pos.forEach(c=>c.classList.add('hint'));setTimeout(()=>pos.forEach(c=>c.classList.remove('hint')),1000);return;}}}}
-
-/* ---------- Page Handling ---------- */
-function loadPage(){const data=pageData[page];
-  if(!data.grid)data.grid=generateGrid(data.words);
-  if(!data.foundWords)data.foundWords=new Set();foundWords=data.foundWords;
-  OPTIONAL_MISSING.forEach(w=>{if(data.words.includes(w)&&!wordExists(w,[...data.grid])&&!foundWords.has(w))foundWords.add(w);});
-  gridDiv.innerHTML='';data.grid.forEach(l=>{const cell=document.createElement('div');cell.className='cell';cell.textContent=l;gridDiv.appendChild(cell);});
-  document.getElementById('pageLabel').textContent=`Page ${page+1}`;
-  document.getElementById('wordList').innerHTML='<h3>Find These Words:</h3><ol>'+data.words.map(w=>foundWords.has(w)
-    ?`<li data-word=\"${w}\"><del>${maskedDisplay(w)}</del></li>`:`<li data-word=\"${w}\">${maskedDisplay(w)}</li>`).join('')+'</ol>';
-  const cells=[...gridDiv.children];cells.forEach(c=>c.addEventListener('click',e=>handleClick(e,cells,data.words)));foundWords.forEach(w=>highlightWord(w,cells));
-  updateScores();document.getElementById('reloadButton').style.display=page===pageData.length-1?'inline-block':'none';resetSelection();currentTeam=null;resetTimer('A');resetTimer('B');}
-
-/* ---------- Cell Click ---------- */
-function handleClick(e,cells,words){
-  if(!currentTeam)return alert('Select Team first');
-  const cell=e.target,idx=cells.indexOf(cell);if(!cell.textContent.match(/[A-Z]/))return;
-  if(lastIndex===-1){currentSelection.push(cell);currentWord+=cell.textContent.toLowerCase();cell.classList.add(currentTeam==='A'?'team-a':'team-b');lastIndex=idx;return;}
-  const diff=idx-lastIndex;if(direction===null&&allowed.includes(diff))direction=diff;
-  if(idx!==lastIndex+direction){flashColor('#ffdddd');penalize();resetSelection();currentTeam=null;return;}
-  currentSelection.push(cell);currentWord+=cell.textContent.toLowerCase();cell.classList.add(currentTeam==='A'?'team-a':'team-b');lastIndex=idx;
-  if(!words.some(w=>w.startsWith(currentWord))){flashColor('#ffdddd');penalize();resetSelection();currentTeam=null;return;}
-  if(words.includes(currentWord)&&!foundWords.has(currentWord)){flashColor('#ddffdd');
-    currentSelection.forEach(c=>c.classList.remove('team-a','team-b'));currentSelection.forEach(c=>c.classList.add('found'));
-    foundWords.add(currentWord);[...document.querySelectorAll('#wordList li')].forEach(li=>{if(li.dataset.word===currentWord)li.innerHTML=`<del>${li.textContent}</del>`;});
-    if(currentTeam==='A'){scoreA+=1;resetTimer('A');}else{scoreB+=1;resetTimer('B');}
-    updateScores();resetSelection();currentTeam=null;}
+  reloadGame();
 }
 
-/* ---------- Nav & Reset ---------- */
+/* ------------- Timer Functions ------------- */
+function updateTimerDisplay(t){
+  document.getElementById(`timer${t}`).textContent =
+    `Time: ${String(timers[t]).padStart(2,'0')}`;
+}
+function resetTimer(t){ clearInterval(intervals[t]); timers[t]=60; updateTimerDisplay(t);}
+function startTimer(t){
+  resetTimer(t);
+  intervals[t]=setInterval(()=>{
+    timers[t]--; updateTimerDisplay(t);
+    if(timers[t]<=0){clearInterval(intervals[t]); flashColor('#ffdddd');
+      penalize(); resetSelection(); const ex=currentTeam; currentTeam=null; resetTimer(ex);}
+  },1000);
+}
+
+/* ------------- Grid Generation ------------- */
+const randomLetter=()=>String.fromCharCode(65+Math.floor(Math.random()*26));
+function canPlace(word,r,c,dir){
+  const len=word.length,endR=r+dir.dy*(len-1),endC=c+dir.dx*(len-1);
+  if(endR<0||endR>=gridSize||endC<0||endC>=gridSize)return false;
+  for(let i=0;i<len;i++){
+    const idx=(r+dir.dy*i)*gridSize+(c+dir.dx*i);
+    if(tempGrid[idx]&&tempGrid[idx]!==word[i])return false;}
+  return true;
+}
+function placeWord(word){
+  for(let t=0;t<300;t++){
+    const dir=directions[Math.floor(Math.random()*directions.length)];
+    const r=Math.floor(Math.random()*gridSize),c=Math.floor(Math.random()*gridSize);
+    if(!canPlace(word,r,c,dir))continue;
+    for(let i=0;i<word.length;i++){
+      const idx=(r+dir.dy*i)*gridSize+(c+dir.dx*i); tempGrid[idx]=word[i];}
+    return true;
+  } return false;
+}
+function generateGrid(words){
+  tempGrid=new Array(gridSize*gridSize).fill(null);
+  words.forEach(w=>placeWord(w.toUpperCase()));
+  return tempGrid.map(ch=>ch||randomLetter());
+}
+
+/* ------------- Helper UI ------------- */
+function maskedDisplay(w){
+  if(NO_MASK.includes(w)||w.length<2)return w;
+  const pos=Math.floor(Math.random()*w.length);
+  return w.slice(0,pos)+'_'+w.slice(pos+1);
+}
+function flashColor(col){
+  const orig=document.body.style.backgroundColor;
+  document.body.style.backgroundColor=col;
+  setTimeout(()=>document.body.style.backgroundColor=orig,300);}
+function updateScores(){
+  document.getElementById('scoreA').textContent=scoreA.toFixed(1);
+  document.getElementById('scoreB').textContent=scoreB.toFixed(1);}
+
+/* ------------- Team / Selection ------------- */
+function selectTeam(t){currentTeam=t; resetSelection(); startTimer(t);}
+function resetSelection(){
+  currentSelection.forEach(c=>c.classList.remove('team-a','team-b'));
+  currentSelection=[]; currentWord=''; lastIndex=-1; direction=null;}
+function penalize(){ if(currentTeam==='A'){scoreA-=0.5;resetTimer('A');}
+  else if(currentTeam==='B'){scoreB-=0.5;resetTimer('B');} updateScores();}
+
+/* ------------- Word-search Helpers ------------- */
+function wordExists(word,cells){
+  const target=word.toUpperCase();
+  for(let i=0;i<cells.length;i++){
+    for(const d of allowed){
+      let ok=true;
+      for(let j=0;j<target.length;j++){
+        const idx=i+j*d;
+        if(idx<0||idx>=cells.length){ok=false;break;}
+        if(d===1&&Math.floor(idx/gridSize)!==Math.floor(i/gridSize)){ok=false;break;}
+        const ch=cells[idx].textContent||cells[idx]; if(ch!==target[j]){ok=false;break;}
+      } if(ok)return true;
+    }
+  } return false;
+}
+function highlightWord(word,cells){
+  const target=word.toUpperCase();
+  for(let i=0;i<cells.length;i++){
+    for(const d of allowed){
+      const pos=[],built=[];
+      for(let j=0;j<target.length;j++){
+        const idx=i+j*d;
+        if(idx<0||idx>=cells.length)break;
+        if(d===1&&Math.floor(idx/gridSize)!==Math.floor(i/gridSize))break;
+        const cell=cells[idx]; built.push(cell.textContent); pos.push(cell);}
+      if(built.join('')===target){pos.forEach(c=>c.classList.add('found'));return;}
+    }
+  }
+}
+function showHint(){
+  const data=pageData[page]; const cells=[...gridDiv.children];
+  const cand=data.words.filter(w=>!foundWords.has(w)&&wordExists(w,cells));
+  if(!cand.length)return alert('No more hints');
+  const word=cand[Math.floor(Math.random()*cand.length)].toUpperCase();
+  for(let i=0;i<cells.length;i++){
+    for(const d of allowed){
+      const pos=[],built=[];
+      for(let j=0;j<word.length;j++){
+        const idx=i+j*d;
+        if(idx<0||idx>=cells.length)break;
+        if(d===1&&Math.floor(idx/gridSize)!==Math.floor(i/gridSize))break;
+        const cell=cells[idx]; built.push(cell.textContent); pos.push(cell);}
+      if(built.join('')===word){
+        pos.forEach(c=>c.classList.add('hint'));
+        setTimeout(()=>pos.forEach(c=>c.classList.remove('hint')),1000);return;}
+    }
+  }
+}
+
+/* ------------- Page Handling ------------- */
+function loadPage(){
+  const data=pageData[page];
+  if(!data.grid)data.grid=generateGrid(data.words);
+  if(!data.foundWords)data.foundWords=new Set();
+  foundWords=data.foundWords;
+
+  OPTIONAL_MISSING.forEach(w=>{
+    if(data.words.includes(w)&&!wordExists(w,[...data.grid])&&!foundWords.has(w))
+      foundWords.add(w);});
+
+  gridDiv.innerHTML='';
+  data.grid.forEach(l=>{
+    const cell=document.createElement('div');
+    cell.className='cell'; cell.textContent=l; gridDiv.appendChild(cell);});
+
+  document.getElementById('pageLabel').textContent=`Page ${page+1}`;
+  document.getElementById('wordList').innerHTML='<h3>Find These Words:</h3><ol>'+
+    data.words.map(w=>foundWords.has(w)
+        ?`<li data-word=\"${w}\"><del>${maskedDisplay(w)}</del></li>`
+        :`<li data-word=\"${w}\">${maskedDisplay(w)}</li>`
+    ).join('')+'</ol>';
+
+  const cells=[...gridDiv.children];
+  cells.forEach(c=>c.addEventListener('click',e=>handleClick(e,cells,data.words)));
+  foundWords.forEach(w=>highlightWord(w,cells));
+
+  updateScores();
+  document.getElementById('reloadButton').style.display =
+    page===pageData.length-1?'inline-block':'none';
+
+  resetSelection(); currentTeam=null; resetTimer('A'); resetTimer('B');
+}
+
+/* Cell Click Handler */
+function handleClick(e,cells,words){
+  if(!currentTeam)return alert('Select Team first');
+  const cell=e.target, idx=cells.indexOf(cell);
+  if(!cell.textContent.match(/[A-Z]/))return;
+
+  if(lastIndex===-1){
+    currentSelection.push(cell); currentWord+=cell.textContent.toLowerCase();
+    cell.classList.add(currentTeam==='A'?'team-a':'team-b'); lastIndex=idx; return;}
+  const diff=idx-lastIndex;
+  if(direction===null&&allowed.includes(diff))direction=diff;
+  if(idx!==lastIndex+direction){flashColor('#ffdddd');penalize();resetSelection();
+    currentTeam=null;return;}
+  currentSelection.push(cell); currentWord+=cell.textContent.toLowerCase();
+  cell.classList.add(currentTeam==='A'?'team-a':'team-b'); lastIndex=idx;
+  if(!words.some(w=>w.startsWith(currentWord))){flashColor('#ffdddd'); penalize();
+    resetSelection(); currentTeam=null; return;}
+  if(words.includes(currentWord)&&!foundWords.has(currentWord)){
+    flashColor('#ddffdd');
+    currentSelection.forEach(c=>c.classList.remove('team-a','team-b'));
+    currentSelection.forEach(c=>c.classList.add('found'));
+    foundWords.add(currentWord);
+    [...document.querySelectorAll('#wordList li')].forEach(li=>{
+      if(li.dataset.word===currentWord)li.innerHTML=`<del>${li.textContent}</del>`;});
+    if(currentTeam==='A'){scoreA+=1;resetTimer('A');}
+    else                 {scoreB+=1;resetTimer('B');}
+    updateScores(); resetSelection(); currentTeam=null;}
+}
+
+/* Navigation & Reset */
 function nextPage(){page=(page+1)%pageData.length;loadPage();}
 function prevPage(){page=(page-1+pageData.length)%pageData.length;loadPage();}
-function reloadGame(){scoreA=0;scoreB=0;pageData.forEach(p=>p.foundWords=new Set());page=0;loadPage();}
+function reloadGame(){
+  scoreA=0; scoreB=0; pageData.forEach(p=>p.foundWords=new Set()); page=0; loadPage();}
 
-/* ---------- INIT ---------- */
+/* INIT */
 document.getElementById('hintButton').onclick=showHint;
-loadPage();
+loadPage(); /* game preps – visible only after Quick Start/Custom */
 </script>
 </body>
 </html>
