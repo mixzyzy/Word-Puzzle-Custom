@@ -4,28 +4,40 @@
   <meta charset="UTF-8">
   <title>Word Search Puzzle</title>
   <style>
-    /* ────────── Global Reset & Typography ────────── */
+    /* ── Global Reset & Typography ── */
     body{font-family:Arial,Helvetica,sans-serif;background:#f9f9f9;margin:0}
     h1,h2,h3{margin:0}
 
-    /* ────────── Title Block ────────── */
+    /* ── Title Block ── */
     #titleWrap{text-align:center}
     .title-small{font-size:28px;font-weight:600;color:#555}
     .title-main {font-size:56px;font-weight:800;color:#333;line-height:1.1}
     .title-tag  {font-size:22px;font-weight:500;color:#777;margin-top:6px}
 
-    /* ────────── Intro & Custom Screens ────────── */
+    /* ── Intro & Custom Screens (shared baseline) ── */
     #intro-screen,#custom-screen{
       display:flex;
       flex-direction:column;
-      align-items:center;         /* horizontal centering */
-      justify-content:flex-start; /* start from top */
-      padding:40px 20px 0;        /* top space (adjust first value) */
+      align-items:center;
+      justify-content:flex-start;   /* start near top */
+      padding:40px 20px 0;          /* top gap (tweak 40px as needed) */
       gap:28px;
-      height:100vh;               /* exact viewport height */
-      overflow:hidden;            /* prevent scroll bar */
+      min-height:100vh;             /* at least full viewport */
       text-align:center;
     }
+
+    /* 1️⃣ Intro: exact viewport, no scroll bar */
+    #intro-screen{
+      height:100vh;
+      overflow:hidden;
+    }
+
+    /* 2️⃣ Custom: allow scrolling to reach all inputs */
+    #custom-screen{
+      overflow:auto;                /* natural scroll */
+    }
+
+    /* ── Buttons & Inputs ── */
     .start-button{
       padding:18px 38px;font-size:20px;font-weight:600;border:none;border-radius:8px;
       cursor:pointer;box-shadow:0 4px 8px rgba(0,0,0,.15);transition:transform .15s ease
@@ -38,7 +50,7 @@
       width:100%;padding:10px 12px;font-size:16px;border:1px solid #bbb;border-radius:6px
     }
 
-    /* ────────── Home Button ────────── */
+    /* ── Home Button ── */
     #homeBtn{
       position:fixed;top:20px;left:20px;display:none;padding:12px 22px;font-size:16px;
       font-weight:600;border:none;border-radius:6px;background:#95a5a6;color:#fff;
@@ -47,7 +59,7 @@
     }
     #homeBtn:hover{transform:translateY(-2px)}
 
-    /* ────────── Game Layout ────────── */
+    /* ── Game Layout ── */
     #main-container{
       display:none;justify-content:center;align-items:center;gap:60px;padding-top:20px
     }
@@ -66,7 +78,7 @@
       background:#fff;border:1px solid #ccc;cursor:pointer;user-select:none;font-size:18px
     }
     .found{background:rgba(135,206,235,.6)}
-    .hint{background:rgba(255,255,0,.45)}
+    .hint {background:rgba(255,255,0,.45)}
     .team-a{background:rgba(231,76,60,.35)!important}
     .team-b{background:rgba(52,152,219,.35)!important}
     #wordBox{display:flex;justify-content:center;gap:32px;margin-top:24px;align-items:flex-start}
